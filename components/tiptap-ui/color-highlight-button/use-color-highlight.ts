@@ -147,7 +147,9 @@ export function canColorHighlight(
     if (!isExtensionAvailable(editor, ["nodeBackground"])) return false
 
     try {
-      return editor.can().toggleNodeBackgroundColor("test")
+      return typeof (editor.can() as any).toggleNodeBackgroundColor === "function"
+        ? (editor.can() as any).toggleNodeBackgroundColor("test")
+        : false
     } catch {
       return false
     }
@@ -202,7 +204,10 @@ export function removeHighlight(
   if (mode === "mark") {
     return editor.chain().focus().unsetMark("highlight").run()
   } else {
-    return editor.chain().focus().unsetNodeBackgroundColor().run()
+    editor.chain().focus().run()
+    return (editor as any).commands?.unsetNodeBackgroundColor
+      ? (editor as any).commands.unsetNodeBackgroundColor()
+      : false
   }
 }
 
@@ -291,11 +296,12 @@ export function useColorHighlight(config: UseColorHighlightConfig) {
 
       return true
     } else {
-      const success = editor
-        .chain()
-        .focus()
-        .toggleNodeBackgroundColor(highlightColor)
-        .run()
+      // Ensure the editor is focused, then call the command API directly.
+      // Use a safe any-cast to access the extension command if TypeScript types don't include it.
+      editor.chain().focus().run()
+      const success = (editor as any).commands?.toggleNodeBackgroundColor
+        ? (editor as any).commands.toggleNodeBackgroundColor(highlightColor)
+        : false
 
       if (success) {
         onApplied?.({ color: highlightColor, label, mode })
