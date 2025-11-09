@@ -85,11 +85,33 @@ export default function TiptapToHtml() {
       .replace(/&nbsp;/g, " ")
       .replace(/<colgroup>[\s\S]*?<\/colgroup>/gi, "")
       .replace(/\brewards\(s\)/gi, "reward(s)")
+      .replace(/\bregulations\(s\)/gi, "regulation(s)")
       .replace(/\bteh\b/gi, "the")
       .replace(/\scolspan=["']\d+["']/gi, "")
       .replace(/\srowspan=["']\d+["']/gi, "")
       .replace(/<td>\s*<p>(.*?)<\/p>\s*<\/td>/gi, "<td>$1</td>")
       .replace(/<th>\s*<p>(.*?)<\/p>\s*<\/th>/gi, "<th>$1</th>")
+      // replace ​with space
+      .replace(/\u200B/g, " ")
+      // replace  with space
+      .replace(/\u2009/g, " ")
+
+      // replace " " with space
+      .replace(/\u200A/g, " ")
+      // replace " " with space
+      .replace(/\u2008/g, " ")
+      // replace " " with space
+      .replace(/\u2005/g, " ")
+      // replace " " with space
+      .replace(/\u2002/g, " ")
+      // replace " " with space
+      .replace(/\u2003/g, " ")
+      // replace "  " with space
+      .replace(/  /g, " ")
+      // replace « with html entity
+      .replace(/«/g, "&laquo;")
+      // replace » with html entity
+      .replace(/»/g, "&raquo;")
       // replace — with html entity
       .replace(/—/g, "&mdash;")
       // replace – with html entity
