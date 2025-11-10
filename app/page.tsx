@@ -54,7 +54,16 @@ export default function TiptapToHtml() {
       TableHeader,
       TableCell,
     ],
-    content: `<h2>Welcome</h2><p>This is a <strong>Tiptap</strong> editor. Try typing or edit the HTML directly below — both stay in sync.</p>`,
+    content: `<h2>Welcome to <strong>clean.af</strong></h2>
+    <p>Instant HTML beautification with Tiptap & CodeMirror.</p>
+    <p>Type something in the WYSIWYG editor on the left, and see the cleaned and formatted HTML source code on the right.</p>
+    <p>Features include:</p>
+    <ul>
+      <li>Real-time HTML sanitization</li>
+      <li>Automatic formatting with Prettier</li>
+      <li>Two-way synchronization between editors</li>
+    </ul>
+    <p>Enjoy a seamless editing experience!</p>`,
     immediatelyRender: false,
     editorProps: {
       attributes: {
@@ -193,7 +202,7 @@ export default function TiptapToHtml() {
         {/* 📝 Tiptap WYSIWYG */}
         <section className="bg-white rounded-2xl shadow p-4 w-[45vw] flex flex-col h-full">
           <div className="flex justify-between mb-3 items-center">
-            <h3 className="text-lg font-semibold">Tiptap WYSIWYG</h3>
+            <h3 className="text-3xl font-semibold">clean.af</h3>
             <span className="text-sm text-slate-500">
               Rich text visual editor
             </span>
@@ -213,7 +222,7 @@ export default function TiptapToHtml() {
             <h3 className="text-lg font-semibold">HTML Source</h3>
             <button
               onClick={copyHtml}
-              className="px-3 py-1 bg-slate-100 rounded hover:bg-slate-200 transition"
+              className="px-3 py-1 bg-slate-900 text-white rounded hover:bg-slate-800 transition"
             >
               {copied ? "Copied" : "Copy HTML"}
             </button>
@@ -228,7 +237,20 @@ export default function TiptapToHtml() {
                 theme={monokai}
                 extensions={[htmlLang()]}
                 onChange={(value) => handleCodeMirrorChange(value)}
-                basicSetup={{ lineNumbers: true, autocompletion: true }}
+                basicSetup={{
+                  lineNumbers: true,
+                  autocompletion: true,
+                  highlightActiveLine: true,
+                  highlightActiveLineGutter: true,
+                  foldGutter: true,
+                  defaultKeymap: true,
+                  searchKeymap: true,
+                  historyKeymap: true,
+                  foldKeymap: true,
+                  lintKeymap: true,
+                  closeBracketsKeymap: true,
+                }}
+                style={{ fontSize: "16px" }}
               />
             </div>
           </div>
