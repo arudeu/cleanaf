@@ -229,7 +229,7 @@ export default function TiptapToHtml() {
           </div>
 
           {/* CodeMirror always fills full section height */}
-          <div className="flex-1 overflow-hidden min-h-0">
+          <div className="flex-1 overflow-scroll min-h-0">
             <div className="h-full min-h-full">
               <CodeMirror
                 value={formattedHtml}
