@@ -202,7 +202,12 @@ export default function TiptapToHtml() {
         {/* 📝 Tiptap WYSIWYG */}
         <section className="bg-white rounded-2xl shadow p-4 w-[45vw] flex flex-col h-full">
           <div className="flex justify-between mb-3 items-center">
-            <h3 className="text-3xl font-semibold">clean.af</h3>
+            <h3 className="text-3xl font-semibold">
+              clean.af
+              <sup className="text-[10px] ms-1 px-2 py-1 text-white rounded-full bg-slate-900">
+                beta
+              </sup>
+            </h3>
             <span className="text-sm text-slate-500">
               Rich text visual editor
             </span>
