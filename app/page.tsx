@@ -19,6 +19,7 @@ import parserHtml from "prettier/parser-html";
 import DOMPurify from "dompurify";
 import MenuBar from "@/components/ui/menuBar";
 
+// ✅ Font setup
 const firaCode = Fira_Code({
   subsets: ["latin"],
   weight: ["400", "500"],
@@ -26,14 +27,16 @@ const firaCode = Fira_Code({
 });
 
 export default function TiptapToHtml() {
-  const [html, setHtml] = useState("");
-  const [formattedHtml, setFormattedHtml] = useState("");
-  const [copied, setCopied] = useState(false);
+  /** 🔹 State management */
+  const [html, setHtml] = useState(""); // Raw HTML from Tiptap
+  const [formattedHtml, setFormattedHtml] = useState(""); // Clean + formatted HTML for CodeMirror
+  const [copied, setCopied] = useState(false); // Clipboard copy feedback
 
-  // To prevent feedback loop
+  /** 🔹 Refs to prevent infinite loop between editors */
   const isUpdatingFromTiptap = useRef(false);
   const isUpdatingFromCodeMirror = useRef(false);
 
+  /** 🧠 Initialize Tiptap editor */
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -41,29 +44,23 @@ export default function TiptapToHtml() {
         orderedList: { keepMarks: true },
       }),
       Underline,
-      TextAlign.configure({
-        types: ["heading", "paragraph"],
-      }),
-      Placeholder.configure({
-        placeholder: "Start typing...",
-      }),
-      Table.configure({
-        resizable: true,
-      }),
+      TextAlign.configure({ types: ["heading", "paragraph"] }),
+      Placeholder.configure({ placeholder: "Start typing..." }),
+      Table.configure({ resizable: true }),
       TableRow,
       TableHeader,
       TableCell,
     ],
-    content: `<h2>Welcome to <strong>clean.af</strong></h2>
-    <p>Instant HTML beautification with Tiptap & CodeMirror.</p>
-    <p>Type something in the WYSIWYG editor on the left, and see the cleaned and formatted HTML source code on the right.</p>
-    <p>Features include:</p>
-    <ul>
-      <li>Real-time HTML sanitization</li>
-      <li>Automatic formatting with Prettier</li>
-      <li>Two-way synchronization between editors</li>
-    </ul>
-    <p>Enjoy a seamless editing experience!</p>`,
+    content: `
+      <h2>Welcome to <strong>clean.af</strong></h2>
+      <p>Instant HTML beautification with Tiptap & CodeMirror.</p>
+      <ul>
+        <li>Real-time HTML sanitization</li>
+        <li>Automatic formatting with Prettier</li>
+        <li>Two-way synchronization between editors</li>
+      </ul>
+      <p>Enjoy a seamless editing experience!</p>
+    `,
     immediatelyRender: false,
     editorProps: {
       attributes: {
@@ -72,107 +69,62 @@ export default function TiptapToHtml() {
       },
     },
     onUpdate: ({ editor }) => {
-      if (isUpdatingFromCodeMirror.current) return;
+      if (isUpdatingFromCodeMirror.current) return; // avoid feedback loop
       isUpdatingFromTiptap.current = true;
       setHtml(editor.getHTML());
     },
   });
 
-  function cleanHtml(inputHtml: string) {
-    if (!inputHtml) return "";
+  /**
+   * 🧼 Sanitize and normalize HTML
+   * Removes unwanted attributes, spacing, and formatting errors.
+   */
+  const cleanHtmlApi = async (html: string) => {
+  const res = await fetch("/api/clean-html", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ html }),
+  });
+  const data = await res.json();
+  return data.formatted || html;
+};
 
-    // Sanitize
-    let cleaned = DOMPurify.sanitize(inputHtml, {
-      USE_PROFILES: { html: true },
-      ALLOWED_ATTR: ["class", "href", "src", "alt", "title", "align"],
-    });
 
-    // Cleanup and normalization
-    cleaned = cleaned
-      .replace(/\s{2,}/g, " ")
-      .replace(/\n\s*/g, "")
-      .replace(/&nbsp;/g, " ")
-      .replace(/<colgroup>[\s\S]*?<\/colgroup>/gi, "")
-      .replace(/\brewards\(s\)/gi, "reward(s)")
-      .replace(/\bregulations\(s\)/gi, "regulation(s)")
-      .replace(/\bteh\b/gi, "the")
-      .replace(/\scolspan=["']\d+["']/gi, "")
-      .replace(/\srowspan=["']\d+["']/gi, "")
-      .replace(/<td>\s*<p>(.*?)<\/p>\s*<\/td>/gi, "<td>$1</td>")
-      .replace(/<th>\s*<p>(.*?)<\/p>\s*<\/th>/gi, "<th>$1</th>")
-      // replace ​with space
-      .replace(/\u200B/g, " ")
-      // replace  with space
-      .replace(/\u2009/g, " ")
-
-      // replace " " with space
-      .replace(/\u200A/g, " ")
-      // replace " " with space
-      .replace(/\u2008/g, " ")
-      // replace " " with space
-      .replace(/\u2005/g, " ")
-      // replace " " with space
-      .replace(/\u2002/g, " ")
-      // replace " " with space
-      .replace(/\u2003/g, " ")
-      // replace "  " with space
-      .replace(/  /g, " ")
-      // replace « with html entity
-      .replace(/«/g, "&laquo;")
-      // replace » with html entity
-      .replace(/»/g, "&raquo;")
-      // replace — with html entity
-      .replace(/—/g, "&mdash;")
-      // replace – with html entity
-      .replace(/–/g, "&ndash;")
-      // replace “ with html entity
-      .replace(/“/g, "&ldquo;")
-      // replace ” with html entity
-      .replace(/”/g, "&rdquo;")
-      // replace ‘ with html entity
-      .replace(/‘/g, "&lsquo;")
-      // replace ’ with html entity
-      .replace(/’/g, "&rsquo;")
-      // replace … with html entity
-      .replace(/…/g, "&hellip;")
-      // remove empty paragraphs
-      .replace(/<p>\s*<\/p>/gi, "");
-
-    return cleaned.trim();
-  }
-
-  // 🧠 When Tiptap changes → update CodeMirror
+  /** 🔄 When Tiptap updates → sync to CodeMirror */
   useEffect(() => {
     if (!html.trim() || isUpdatingFromCodeMirror.current) return;
 
     const timeout = setTimeout(async () => {
       try {
-        const cleaned = cleanHtml(html);
-        const formatted = await prettier.format(cleaned, {
+        const cleaned = cleanHtmlApi(html);
+        const formatted = await prettier.format(await cleaned, {
           parser: "html",
           plugins: [parserHtml],
         });
-        isUpdatingFromTiptap.current = false;
+
         setFormattedHtml(formatted);
       } catch (err) {
         console.error("Formatting error:", err);
+      } finally {
+        isUpdatingFromTiptap.current = false;
       }
     }, 300);
 
     return () => clearTimeout(timeout);
   }, [html]);
 
-  // 💡 When CodeMirror changes → update Tiptap
+  /** 🔄 When CodeMirror updates → sync back to Tiptap */
   const handleCodeMirrorChange = async (value: string) => {
     if (isUpdatingFromTiptap.current) return;
 
     try {
       isUpdatingFromCodeMirror.current = true;
-      const cleaned = cleanHtml(value);
-      const formatted = await prettier.format(cleaned, {
-        parser: "html",
-        plugins: [parserHtml],
-      });
+
+      const cleaned = cleanHtmlApi(html);
+        const formatted = await prettier.format(await cleaned, {
+          parser: "html",
+          plugins: [parserHtml],
+        });
 
       setFormattedHtml(formatted);
       setHtml(formatted);
@@ -180,27 +132,31 @@ export default function TiptapToHtml() {
     } catch (err) {
       console.error("CodeMirror update error:", err);
     } finally {
+      // Small delay to prevent flicker
       setTimeout(() => {
         isUpdatingFromCodeMirror.current = false;
       }, 100);
     }
   };
 
+  /** 📋 Copy HTML to clipboard */
   const copyHtml = () => {
     navigator.clipboard.writeText(formattedHtml);
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   };
 
-  if (!editor) return <div className="p-6">Loading editor...</div>;
+  if (!editor) return <div className="p-6 text-white">Loading editor...</div>;
 
+  /** 🎨 Layout */
   return (
     <div
       className={`min-h-screen bg-black p-6 flex justify-center items-start ${firaCode.variable} font-[var(--font-fira)]`}
     >
       <div className="flex flex-wrap justify-center gap-6 w-full max-w-[1800px] h-[calc(100vh-3rem)]">
-        {/* 📝 Tiptap WYSIWYG */}
+        {/* 📝 Tiptap Section */}
         <section className="bg-white rounded-2xl shadow p-4 w-[45vw] flex flex-col h-full">
+          {/* Header */}
           <div className="flex justify-between mb-3 items-center">
             <h3 className="text-3xl font-semibold">
               clean.af
@@ -215,14 +171,15 @@ export default function TiptapToHtml() {
 
           <MenuBar editor={editor} />
 
-          {/* Tiptap editor fills remaining space */}
+          {/* Editor */}
           <div className="border rounded p-3 flex-1 overflow-auto">
             <EditorContent editor={editor} className="h-full min-h-full" />
           </div>
         </section>
 
-        {/* 💻 CodeMirror HTML */}
+        {/* 💻 CodeMirror Section */}
         <section className="bg-white rounded-2xl shadow p-4 w-[45vw] flex flex-col h-full">
+          {/* Header */}
           <div className="flex justify-between mb-3 items-center">
             <h3 className="text-lg font-semibold">HTML Source</h3>
             <button
@@ -233,31 +190,29 @@ export default function TiptapToHtml() {
             </button>
           </div>
 
-          {/* CodeMirror always fills full section height */}
+          {/* CodeMirror Editor */}
           <div className="flex-1 overflow-scroll min-h-0">
-            <div className="h-full min-h-full">
-              <CodeMirror
-                value={formattedHtml}
-                height="100%"
-                theme={monokai}
-                extensions={[htmlLang()]}
-                onChange={(value) => handleCodeMirrorChange(value)}
-                basicSetup={{
-                  lineNumbers: true,
-                  autocompletion: true,
-                  highlightActiveLine: true,
-                  highlightActiveLineGutter: true,
-                  foldGutter: true,
-                  defaultKeymap: true,
-                  searchKeymap: true,
-                  historyKeymap: true,
-                  foldKeymap: true,
-                  lintKeymap: true,
-                  closeBracketsKeymap: true,
-                }}
-                style={{ fontSize: "16px" }}
-              />
-            </div>
+            <CodeMirror
+              value={formattedHtml}
+              height="100%"
+              theme={monokai}
+              extensions={[htmlLang()]}
+              onChange={handleCodeMirrorChange}
+              basicSetup={{
+                lineNumbers: true,
+                autocompletion: true,
+                highlightActiveLine: true,
+                highlightActiveLineGutter: true,
+                foldGutter: true,
+                defaultKeymap: true,
+                searchKeymap: true,
+                historyKeymap: true,
+                foldKeymap: true,
+                lintKeymap: true,
+                closeBracketsKeymap: true,
+              }}
+              style={{ fontSize: "16px" }}
+            />
           </div>
         </section>
       </div>
